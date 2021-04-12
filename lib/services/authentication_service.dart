@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:googleapis_auth/auth_io.dart';
 import 'package:sked/models/user.dart';
+import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 
 class AuthenticationService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -13,6 +15,10 @@ class AuthenticationService {
   SkedUser _currentUser;
   SkedUser get currentUser => getSkedUser();
   GoogleSignIn get googleSignin => _googleSignIn;
+
+  AuthClient _authClient;
+
+  AuthClient get authClient => _authClient;
 
   SkedUser getSkedUser() {
     var user = _firebaseAuth.currentUser;
@@ -53,6 +59,8 @@ class AuthenticationService {
 
     assert(_user.uid == fbUser.uid);
 
+    _authClient = await googleSignin.authenticatedClient();
+
     setSkedUser(fbUser);
   }
 
@@ -87,10 +95,7 @@ class AuthenticationService {
   Future<bool> isUserLoggedIn() async {
     var user = _firebaseAuth.currentUser;
     if (user != null) {
-      if (user.isAnonymous) {
-        return _currentUser != null;
-      }
-      return user != null;
+      return user != null && _authClient != null;
     } else {
       return false;
     }

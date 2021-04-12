@@ -102,10 +102,6 @@ class HomeViewModel extends BaseModel {
 
     dataSource = EventDataSource(_meetings);
 
-    if (await _auth.googleSignin.authenticatedClient() == null) {
-      await loginWithGoogle();
-    }
-
     _currentUser = _auth.currentUser;
     await getEvents();
   }
@@ -114,10 +110,15 @@ class HomeViewModel extends BaseModel {
     state = ViewState.Busy;
     try {
       await _auth.signInWithGoogle();
+      await getEvents();
       state = ViewState.Idle;
     } catch (e) {
       throw e;
     }
+  }
+
+  Future<bool> isLoggedIn() async {
+    return await _auth.isUserLoggedIn();
   }
 
   mat.Color getColor(String colorNumber) {
@@ -133,10 +134,8 @@ class HomeViewModel extends BaseModel {
   }
 
   Future getEvents() async {
-    final client = await _auth.googleSignin.authenticatedClient();
-
-    if (client != null) {
-      final calendarClient = CalendarApi(client);
+    if (await isLoggedIn()) {
+      final calendarClient = CalendarApi(_auth.authClient);
 
       final List<String> mycalendars = [
         "Family",
