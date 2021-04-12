@@ -69,8 +69,6 @@ class AuthenticationService {
 
     User _user = authResult.user;
 
-    print(_user.toString());
-
     assert(await _user.getIdToken() != null);
 
     User fbUser = _firebaseAuth.currentUser;
@@ -95,7 +93,7 @@ class AuthenticationService {
   Future<bool> isUserLoggedIn() async {
     var user = _firebaseAuth.currentUser;
     if (user != null) {
-      return user != null && _authClient != null;
+      return _authClient != null;
     } else {
       return false;
     }
