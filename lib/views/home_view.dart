@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_awesome_buttons/flutter_awesome_buttons.dart';
 import 'package:sked/base/base_view.dart';
 import 'package:sked/viewmodels/home_viewmodel.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -38,6 +39,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: Colors.black87,
                     ),
                   ),
+                  Center(
+                      child: Container(
+                          width: 200,
+                          child: SignInWithGoogle(
+                              buttonColor: Colors.grey[900],
+                              onPressed: () async {
+                                model.loginWithGoogle();
+                                Navigator.pop(context);
+                              }))),
                   Column(
                     children: [
                       Center(

@@ -32,7 +32,6 @@ class _Grateful8AppState extends State<Grateful8App> {
 
   @override
   Widget build(BuildContext context) {
-    print('test');
     return ChangeNotifierProvider<HomeViewModel>(
       create: (_) => HomeViewModel(),
       child: Center(
