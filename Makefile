@@ -1,3 +1,4 @@
+.PHONY: build
 
 clean:
 	flutter clean
