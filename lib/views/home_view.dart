@@ -16,7 +16,54 @@ class _HomeScreenState extends State<HomeScreen> {
     }, builder: (context, model, build) {
       return SafeArea(
         child: Scaffold(
-          resizeToAvoidBottomInset: false,
+          appBar: AppBar(title: Text("sked")),
+          drawer: Container(
+              width: 600,
+              child: Drawer(
+                  child: ListView(
+                // Important: Remove any padding from the ListView.
+                padding: EdgeInsets.zero,
+                children: <Widget>[
+                  DrawerHeader(
+                    child: Center(
+                      child: Text(
+                        'Hello ${model.displayName}',
+                        style: TextStyle(
+                            fontSize: 25,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[200]),
+                      ),
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Column(
+                    children: [
+                      Center(
+                        child: ToggleButtons(
+                            children: [
+                              Icon(Icons.calendar_today_rounded),
+                              Icon(Icons.calendar_view_day_rounded),
+                              Icon(Icons.calendar_view_day_outlined)
+                            ],
+                            isSelected: model.isSelected,
+                            onPressed: (index) {
+                              model.viewChanged(index);
+                              Navigator.pop(context);
+                            }),
+                      ),
+                    ],
+                  ),
+                  ListTile(
+                    title: Text('Item 2'),
+                    onTap: () {
+                      // Update the state of the app.
+                      // ...
+                    },
+                  ),
+                ],
+              ))),
           body: Stack(children: <Widget>[
             Container(
               child: Padding(
@@ -24,26 +71,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Center(
-                      child: Text(
-                        'Hello ${model.displayName}',
-                        style: TextStyle(
-                            fontSize: 25,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black54),
-                      ),
-                    ),
-                    Center(
-                      child: ToggleButtons(
-                        children: [
-                          Icon(Icons.calendar_today_rounded),
-                          Icon(Icons.calendar_view_day_rounded),
-                          Icon(Icons.calendar_view_day_outlined)
-                        ],
-                        isSelected: model.isSelected,
-                        onPressed: (index) => model.viewChanged(index),
-                      ),
-                    ),
                     Expanded(
                         child: SfCalendar(
                       view: CalendarView.month,
