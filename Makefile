@@ -12,3 +12,6 @@ start:
 
 build:
 	 flutter build web
+
+emulator:
+	firebase emulators:start

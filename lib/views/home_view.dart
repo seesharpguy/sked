@@ -1,3 +1,4 @@
+import 'package:checkbox_grouped/checkbox_grouped.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_awesome_buttons/flutter_awesome_buttons.dart';
 import 'package:sked/base/base_view.dart';
@@ -26,52 +27,75 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: EdgeInsets.zero,
                 children: <Widget>[
                   DrawerHeader(
-                    child: Center(
-                      child: Text(
-                        'Hello ${model.displayName}',
-                        style: TextStyle(
-                            fontSize: 25,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[200]),
-                      ),
-                    ),
+                    child: model.isLoggedIn
+                        ? Column(children: [
+                            Center(
+                              child: Text(
+                                'Hello ${model.displayName}',
+                                style: TextStyle(
+                                    fontSize: 25,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey[300]),
+                              ),
+                            ),
+                            SizedBox(height: 10),
+                            CircleAvatar(
+                              backgroundImage: NetworkImage(model.avatarUrl),
+                              radius: 45,
+                            )
+                          ])
+                        : Container(),
                     decoration: BoxDecoration(
                       color: Colors.black87,
                     ),
                   ),
-                  Center(
-                      child: Container(
-                          width: 200,
-                          child: SignInWithGoogle(
-                              buttonColor: Colors.grey[900],
-                              onPressed: () async {
-                                model.loginWithGoogle();
-                                Navigator.pop(context);
-                              }))),
-                  Column(
-                    children: [
-                      Center(
-                        child: ToggleButtons(
-                            children: [
-                              Icon(Icons.calendar_today_rounded),
-                              Icon(Icons.calendar_view_day_rounded),
-                              Icon(Icons.calendar_view_day_outlined)
-                            ],
-                            isSelected: model.isSelected,
-                            onPressed: (index) {
-                              model.viewChanged(index);
-                              Navigator.pop(context);
-                            }),
-                      ),
-                    ],
-                  ),
-                  ListTile(
-                    title: Text('Item 2'),
-                    onTap: () {
-                      // Update the state of the app.
-                      // ...
-                    },
-                  ),
+                  model.isLoggedIn
+                      ? Center(
+                          child: Container(
+                              width: 200,
+                              child: DarkButtton(
+                                onPressed: () async {
+                                  model.logout();
+                                  Navigator.pop(context);
+                                },
+                                title: "Log Out",
+                              )))
+                      : Center(
+                          child: Container(
+                              width: 200,
+                              child: SignInWithGoogle(
+                                  buttonColor: Colors.grey[900],
+                                  onPressed: () async {
+                                    model.loginWithGoogle();
+                                    Navigator.pop(context);
+                                  }))),
+                  model.isLoggedIn
+                      ? Column(
+                          children: [
+                            Center(
+                              child: ToggleButtons(
+                                  children: [
+                                    Icon(Icons.calendar_today_rounded),
+                                    Icon(Icons.calendar_view_day_rounded),
+                                    Icon(Icons.calendar_view_day_outlined)
+                                  ],
+                                  isSelected: model.isSelected,
+                                  onPressed: (index) {
+                                    model.viewChanged(index);
+                                    Navigator.pop(context);
+                                  }),
+                            ),
+                            SimpleGroupedSwitch<String>(
+                                controller: model.groupController,
+                                values: model.allCalendars
+                                    .map((e) => e.id)
+                                    .toList(),
+                                itemsTitle: model.allCalendars
+                                    .map((e) => e.display)
+                                    .toList())
+                          ],
+                        )
+                      : Container()
                 ],
               ))),
           body: Stack(children: <Widget>[

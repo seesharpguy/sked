@@ -1,23 +1,17 @@
 import 'dart:async';
+import 'package:checkbox_grouped/checkbox_grouped.dart';
 import 'package:sked/base/base_model.dart';
 import 'package:sked/models/user.dart';
 import 'package:sked/services/authentication_service.dart';
 import 'package:sked/utils/locator.dart';
-import 'package:sked/services/navigation_service.dart';
-import 'package:sked/utils/routeNames.dart';
 import 'package:sked/utils/view_state.dart';
 import 'package:googleapis/calendar/v3.dart';
-import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:flutter/material.dart' as mat;
 import 'package:date_utils/date_utils.dart';
 
 class HomeViewModel extends BaseModel {
   final AuthenticationService _auth = locator<AuthenticationService>();
-  final NavigationService _navigationService = locator<NavigationService>();
-
-  final StreamController<String> _toastController =
-      StreamController<String>.broadcast();
 
   SkedUser _currentUser;
 
@@ -26,23 +20,34 @@ class HomeViewModel extends BaseModel {
 
   DateTime _beginDate = DateUtils.firstDayOfMonth(DateTime.now()).toUtc();
   DateTime _endDate = DateUtils.lastDayOfMonth(DateTime.now()).toUtc();
+  bool _isLoggedIn = false;
 
   EventDataSource _dataSource;
   List<bool> _isSelected = [true, false, false];
   CalendarView _view = CalendarView.month;
   CalendarController _controller = CalendarController();
+  GroupController _groupController = GroupController(isMultipleSelection: true);
 
   SkedUser get currentUser => _auth.currentUser;
   String get avatarUrl => _currentUser?.photoURL;
   String get displayName => _currentUser?.displayName;
+  bool get isLoggedIn => _isLoggedIn;
+
   List<SkedEvent> get meetings => _meetings;
   CalendarController get controller => _controller;
+  GroupController get groupController => _groupController;
   Map<String, String> get colors => _colors;
+
+  List<String> _selectedCalendars = [];
+  List<SkedCalendar> _allCalendars = <SkedCalendar>[];
+  CalendarList _calendarList;
 
   CalendarView get view => _view;
   List<bool> get isSelected => _isSelected;
 
   EventDataSource get dataSource => _dataSource;
+
+  List<SkedCalendar> get allCalendars => _allCalendars;
 
   set meetings(List<SkedEvent> appts) {
     _meetings = appts;
@@ -51,6 +56,16 @@ class HomeViewModel extends BaseModel {
 
   set dataSource(EventDataSource ds) {
     _dataSource = ds;
+    notifyListeners();
+  }
+
+  set isLoggedIn(bool loggedIn) {
+    _isLoggedIn = loggedIn;
+    notifyListeners();
+  }
+
+  set allCalendars(List<SkedCalendar> calendars) {
+    _allCalendars = calendars;
     notifyListeners();
   }
 
@@ -86,30 +101,29 @@ class HomeViewModel extends BaseModel {
           .toUtc();
     }
 
-    _meetings = <SkedEvent>[];
+    resetCalendar();
     await getEvents();
   }
 
   void init() async {
-    // final bool isLoggedIn = await _auth.isUserLoggedIn();
-
-    // if (!isLoggedIn) {
-    //   _navigationService.navigateTo(RouteName.Login);
-    // } else {
-    //   _currentUser = _auth.currentUser;
-    //   getEvents();
-    // }
-
     dataSource = EventDataSource(_meetings);
 
-    _currentUser = _auth.currentUser;
+    await checkLogin();
     await getEvents();
+
+    _groupController.listen((value) {
+      _selectedCalendars = value;
+      _groupController.initSelectedItem = value;
+      resetCalendar();
+      getEvents();
+    });
   }
 
   Future loginWithGoogle() async {
     state = ViewState.Busy;
     try {
       await _auth.signInWithGoogle();
+      await checkLogin();
       await getEvents();
       state = ViewState.Idle;
     } catch (e) {
@@ -117,8 +131,14 @@ class HomeViewModel extends BaseModel {
     }
   }
 
-  Future<bool> isLoggedIn() async {
-    return await _auth.isUserLoggedIn();
+  Future<void> checkLogin() async {
+    final bool loggedIn = await _auth.isUserLoggedIn();
+
+    if (loggedIn) {
+      _currentUser = _auth.currentUser;
+    }
+
+    isLoggedIn = loggedIn;
   }
 
   mat.Color getColor(String colorNumber) {
@@ -133,15 +153,9 @@ class HomeViewModel extends BaseModel {
     return color;
   }
 
-  Future getEvents() async {
-    if (await isLoggedIn()) {
+  Future loadCalendars() async {
+    if (isLoggedIn) {
       final calendarClient = CalendarApi(_auth.authClient);
-
-      final List<String> mycalendars = [
-        "Family",
-        "RyanAndAlison",
-        "ryan.r.sites@gmail.com"
-      ];
 
       final allCollors = await calendarClient.colors.get();
 
@@ -149,10 +163,29 @@ class HomeViewModel extends BaseModel {
         _colors[element.key] = element.value.background;
       });
 
-      CalendarList allCalendars = await calendarClient.calendarList.list();
+      CalendarList calendarList = await calendarClient.calendarList.list();
 
-      final matchingCalendars = allCalendars.items
-          .where((item) => mycalendars.contains(item.summary));
+      _calendarList = calendarList;
+
+      List<SkedCalendar> listOfCalendars = [];
+      calendarList.items.forEach((element) {
+        listOfCalendars.add(SkedCalendar(element.summary, element.id));
+      });
+
+      allCalendars = listOfCalendars;
+    }
+  }
+
+  Future getEvents() async {
+    if (isLoggedIn) {
+      final calendarClient = CalendarApi(_auth.authClient);
+
+      if (_allCalendars.length == 0) {
+        await loadCalendars();
+      }
+
+      final matchingCalendars = _calendarList.items
+          .where((item) => _selectedCalendars.contains(item.id));
 
       for (var calendar in matchingCalendars) {
         Events events = await calendarClient.events
@@ -177,10 +210,15 @@ class HomeViewModel extends BaseModel {
 
   void logout() async {
     signOutGoogle();
-    _navigationService.navigateTo(RouteName.Login);
+    resetCalendar();
+    isLoggedIn = false;
+    notifyListeners();
   }
 
-  clearAllModels() {}
+  resetCalendar() {
+    _meetings = <SkedEvent>[];
+    dataSource = EventDataSource(_meetings);
+  }
 }
 
 class EventDataSource extends CalendarDataSource {
@@ -222,4 +260,11 @@ class SkedEvent {
   DateTime to;
   mat.Color background;
   bool isAllDay;
+}
+
+class SkedCalendar {
+  SkedCalendar(this.display, this.id);
+
+  String display;
+  String id;
 }
